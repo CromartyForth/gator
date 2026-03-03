@@ -8,7 +8,10 @@ import (
 )
 
 
-const configFileName = "/gatorconfig.json"
+const configFileName = "/.gatorconfig.json"
+
+
+
 
 // Export a Config struct that represents the JSON file structure, including struct tags.
 type Config struct {
@@ -22,7 +25,6 @@ func Read() Config {
 	if err != nil {
 		fmt.Println("er")
 	}
-
 
 	// open file readonly
 	file, err := os.Open(fullpath)
@@ -55,13 +57,27 @@ func (c *Config) SetUser(userName string) {
 	if err != nil {
 		fmt.Printf("error writing file: %v", err)
 	}
-	return
 }
 
 
 func write(cfg Config) error {
-	
-	
+	// get filepath
+	fullpath, err:= getConfigFilePath()
+	if err != nil {
+		fmt.Println("er")
+	}
+
+	// convert to json json.MarshalIndent(data, "<prefix>", "<indent>")
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		fmt.Println("error converting to json")
+	}
+
+	// write to file
+	err = os.WriteFile(fullpath, data, 0644)
+	if err != nil {
+		fmt.Println("error writing to file")
+	}
 	return nil
 }
 
@@ -72,6 +88,5 @@ func getConfigFilePath() (string, error){
 			return "", err
 		}
 	fullpath := home + configFileName
-	fmt.Println(fullpath)
 	return fullpath, nil
 }
