@@ -3,9 +3,11 @@ package command
 import (
 	"fmt"
 	"github.com/CromartyForth/gator/internal/config"
+	"github.com/CromartyForth/gator/internal/database"
 )
 
 type State struct {
+	Db  *database.Queries
 	Stateptr *config.Config
 }
 
@@ -41,6 +43,12 @@ func (c Commands) RunCommand(s *State, cmd Command) error {
 	return nil
 }
 
+// This method registers a new handler function for a command name.
+
+func (c *Commands) Register (name string, f func(*State, Command) error) {
+	c.CmdToHandler[name] = f
+}
+
 func HandlerLogin(s *State, cmd Command) error {
 	if len(cmd.Arguments) < 1 {
 		return fmt.Errorf("username is required")
@@ -53,9 +61,3 @@ func HandlerLogin(s *State, cmd Command) error {
 	return nil
 }
 
-
-// This method registers a new handler function for a command name.
-
-func (c *Commands) Register (name string, f func(*State, Command) error) {
-	c.CmdToHandler[name] = f
-}
