@@ -36,8 +36,12 @@ func main() {
 	newCommands := command.Commands{}
 	newCommands.CmdToHandler = make(map[string]func(*command.State, command.Command) error)
 
-	// Registers a handler function for the login command.
+	// Registers a handler function for commands.
 	newCommands.Register("login", command.HandlerLogin)
+	newCommands.Register("register", command.HandlerRegister)
+	newCommands.Register("reset", command.HandlerReset)
+	newCommands.Register("users", command.HandlerUsers)
+
 
 	// get cmdln args
 	if len(os.Args) < 2 {
@@ -56,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(newState.Stateptr)
+	fmt.Printf("%+v", newState.Stateptr)
 
 }
 
