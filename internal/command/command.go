@@ -8,6 +8,8 @@ import (
 	"time"
 	"github.com/CromartyForth/gator/internal/config"
 	"github.com/CromartyForth/gator/internal/database"
+	
+	
 )
 
 type State struct {
@@ -49,7 +51,7 @@ func (c Commands) RunCommand(s *State, cmd Command) error {
 
 // This method registers a new handler function for a command name.
 
-func (c *Commands) Register (name string, f func(*State, Command) error) {
+func (c *Commands) Register(name string, f func(*State, Command) error) {
 	c.CmdToHandler[name] = f
 }
 
@@ -138,3 +140,15 @@ func HandlerUsers(s *State, cmd Command) error {
 	return nil
 }
 
+func HandlerAgg(s *State, cmd Command) error {
+	// Add an agg command. Later this will be our long-running aggregator service. For now, we'll just use it to fetch a single feed and ensure our parsing works. It should fetch the feed found at https://www.wagslane.dev/index.xml and print the entire struct to the console.
+	contextBackground := context.Background()
+	fetchedFeed, err := fetchFeed(contextBackground, "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v", fetchedFeed)
+
+	return nil
+}

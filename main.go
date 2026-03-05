@@ -41,6 +41,7 @@ func main() {
 	newCommands.Register("register", command.HandlerRegister)
 	newCommands.Register("reset", command.HandlerReset)
 	newCommands.Register("users", command.HandlerUsers)
+	newCommands.Register("agg", command.HandlerAgg)
 
 
 	// get cmdln args

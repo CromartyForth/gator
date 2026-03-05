@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"context"
@@ -41,6 +41,7 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	}
 	// check response code for ikk
 	if resp.StatusCode > 299 {
+		fmt.Println(req)
 		return nil, fmt.Errorf("network error: %v", resp.Status)
 	}
 	// read the response
@@ -63,7 +64,7 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 
 /*
 Use the html.UnescapeString function to decode escaped HTML entities (like &ldquo;). You'll need to run the Title and Description fields (of both the entire channel as well as the items) through this function.
-Add an agg command. Later this will be our long-running aggregator service. For now, we'll just use it to fetch a single feed and ensure our parsing works. It should fetch the feed found at https://www.wagslane.dev/index.xml and print the entire struct to the console.
+
 
 
 */
