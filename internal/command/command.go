@@ -148,7 +148,9 @@ func HandlerAgg(s *State, cmd Command) error {
 		return err
 	}
 
-	fmt.Printf("%+v", fetchedFeed)
+	fmt.Printf("Title: %+v ***\n", fetchedFeed.Channel.Title)
+	fmt.Printf("Description: %+v ***\n", fetchedFeed.Channel.Description)
+	fmt.Printf("%+v\n", fetchedFeed)
 
 	return nil
 }
