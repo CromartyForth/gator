@@ -198,3 +198,33 @@ func HandlerAddFeed(s *State, cmd Command) error {
 	return nil
 }
 
+func HandlerFeeds(s *State, cmd Command) error {
+	
+	contextBackground := context.Background()
+	feeds, err := s.Db.GetFeeds(contextBackground)
+	if err != nil {
+		return fmt.Errorf("error returning feeds from database: %v", err)
+	}
+
+	for _, feed := range(feeds) {
+		fmt.Printf("\nTitle: %v\n", feed.Name)
+		fmt.Printf("url: %v\n", feed.Url)
+		fmt.Printf("Added by: %v\n", feed.Name_2)
+	}
+
+	return nil
+}
+
+func HandlerFollow(s *State, cmd Command) error {
+	// ensure one arguments
+	if len(cmd.Arguments) < 1 {
+		return fmt.Errorf("not enought aguments, url required")
+	}
+
+	// create new feed_follow entry
+	return nil
+}
+
+/*
+Add a follow command. It takes a single url argument and creates a new feed follow record for the current user. It should print the name of the feed and the current user once the record is created (which the query we just made should support). You'll need a query to look up feeds by URL.
+*/

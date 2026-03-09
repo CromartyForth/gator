@@ -43,6 +43,8 @@ func main() {
 	newCommands.Register("users", command.HandlerUsers)
 	newCommands.Register("agg", command.HandlerAgg)
 	newCommands.Register("addfeed", command.HandlerAddFeed)
+	newCommands.Register("feeds", command.HandlerFeeds)
+	newCommands.Register("")
 
 
 	// get cmdln args
@@ -62,7 +64,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%+v", newState.Stateptr)
+	//fmt.Printf("%+v", newState.Stateptr)
 
 }
 
