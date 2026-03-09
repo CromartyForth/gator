@@ -42,6 +42,7 @@ func main() {
 	newCommands.Register("reset", command.HandlerReset)
 	newCommands.Register("users", command.HandlerUsers)
 	newCommands.Register("agg", command.HandlerAgg)
+	newCommands.Register("addfeed", command.HandlerAddFeed)
 
 
 	// get cmdln args

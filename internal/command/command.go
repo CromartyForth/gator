@@ -154,3 +154,47 @@ func HandlerAgg(s *State, cmd Command) error {
 
 	return nil
 }
+
+func HandlerAddFeed(s *State, cmd Command) error {
+	// ensure two arguments
+	if len(cmd.Arguments) < 2 {
+		return fmt.Errorf("not enought aguments, name and url required")
+	}
+
+	// get current user id.
+	contextBackground := context.Background()
+	user, err := s.Db.GetUser(contextBackground, s.Stateptr.UserName)
+	if err != nil {
+		fmt.Printf("User %v does not exist.", s.Stateptr.UserName)
+		os.Exit(1)
+	}
+
+	userIDstring := user.ID.String()
+	if userIDstring == "" {
+		return fmt.Errorf("error converting *** %v *** to string", user.ID)
+	}
+
+
+	// create feed entry
+	feedArgs := database.CreateFeedParams{
+		
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name: cmd.Arguments[0],
+		Url: cmd.Arguments[1],
+		UserID: user.ID, // get current user
+	}
+
+	// check url is valid?
+
+	contextBackground = context.Background()
+	newFeed, err := s.Db.CreateFeed(contextBackground, feedArgs)
+	if err != nil {
+		return fmt.Errorf("Error writing to database: %v", err)
+	}
+
+	fmt.Printf("%+v", newFeed)
+	return nil
+}
+
