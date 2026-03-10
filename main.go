@@ -44,7 +44,8 @@ func main() {
 	newCommands.Register("agg", command.HandlerAgg)
 	newCommands.Register("addfeed", command.HandlerAddFeed)
 	newCommands.Register("feeds", command.HandlerFeeds)
-	newCommands.Register("")
+	newCommands.Register("follow", command.HandlerFollow)
+	newCommands.Register("following", command.HandlerFollowing)
 
 
 	// get cmdln args

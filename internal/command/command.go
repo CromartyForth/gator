@@ -102,8 +102,8 @@ func HandlerRegister(s *State, cmd Command) error {
 	s.Stateptr.SetUser(cmd.Arguments[0])
 
 	// Print a message that the user was created
-	fmt.Printf("Username set to %v\n", s.Stateptr.UserName)
-	fmt.Printf("%+v", newUser)
+	fmt.Printf("Username set to %v\n", newUser.Name)
+	//fmt.Printf("%+v", newUser)
 	return nil
 }
 
@@ -112,9 +112,9 @@ func HandlerReset(s *State, cmd Command) error {
 	if err := s.Db.DeleteAllUsers(contextBackground); err != nil {
 		return fmt.Errorf("error deleting user table: %v", err)
 	}
-	
 	return nil
 }
+
 
 func HandlerUsers(s *State, cmd Command) error {
 	contextBackground := context.Background()
@@ -136,9 +136,9 @@ func HandlerUsers(s *State, cmd Command) error {
 			fmt.Println(user)
 		}
 	}
-
 	return nil
 }
+
 
 func HandlerAgg(s *State, cmd Command) error {
 	// Add an agg command. Later this will be our long-running aggregator service. For now, we'll just use it to fetch a single feed and ensure our parsing works. It should fetch the feed found at https://www.wagslane.dev/index.xml and print the entire struct to the console.
@@ -174,7 +174,6 @@ func HandlerAddFeed(s *State, cmd Command) error {
 		return fmt.Errorf("error converting *** %v *** to string", user.ID)
 	}
 
-
 	// create feed entry
 	feedArgs := database.CreateFeedParams{
 		
@@ -195,6 +194,22 @@ func HandlerAddFeed(s *State, cmd Command) error {
 	}
 
 	fmt.Printf("%+v", newFeed)
+
+	// create an automatic feed_following entry
+	feedFollowArgs := database.CreateFeedFollowParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: newFeed.UserID,
+		FeedID: newFeed.ID,  
+	}
+
+	// create new feed_follow entry
+	_, err = s.Db.CreateFeedFollow(contextBackground, feedFollowArgs)
+	if err != nil {
+		return fmt.Errorf("error creating feed_follow entry: %v", err)
+	}
+
 	return nil
 }
 
@@ -221,10 +236,60 @@ func HandlerFollow(s *State, cmd Command) error {
 		return fmt.Errorf("not enought aguments, url required")
 	}
 
+	// user feed url to get feed id from feeds table.
+	contextBackground := context.Background()
+	getfeedID, err := s.Db.GetFeedFromURL(contextBackground, cmd.Arguments[0])
+	if err != nil {
+		return fmt.Errorf("error fetching feed id from url: %v", err)
+	}
+
+	// get current user id.
+	getUserID, err := s.Db.GetUser(contextBackground, s.Stateptr.UserName)
+	if err != nil {
+		return fmt.Errorf("error getting id from name")
+	}
+
+	// create feed_follows entry
+	feedFollowArgs := database.CreateFeedFollowParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: getUserID.ID,
+		FeedID: getfeedID.ID,  
+	}
+
 	// create new feed_follow entry
+
+	feeds, err := s.Db.CreateFeedFollow(contextBackground, feedFollowArgs)
+	if err != nil {
+		return fmt.Errorf("error creating feed_follow entry: %v", err)
+	}
+
+	fmt.Printf("Feed name: %v\n", feeds.FeedName)
+	fmt.Printf("Followed by: %v\n", feeds.UserName)
+
 	return nil
 }
 
-/*
-Add a follow command. It takes a single url argument and creates a new feed follow record for the current user. It should print the name of the feed and the current user once the record is created (which the query we just made should support). You'll need a query to look up feeds by URL.
-*/
+func HandlerFollowing(s *State, cmd Command) error {
+	
+	// get user id
+	contextBackground := context.Background()
+	getUserID, err := s.Db.GetUser(contextBackground, s.Stateptr.UserName)
+	if err != nil {
+		return fmt.Errorf("error getting id from name")
+	}
+
+	// get the all the feeds the user is following
+	contextBackground = context.Background()
+	following, err := s.Db.GetFeedFollowsForUser(contextBackground, getUserID.ID)
+	if err != nil {
+		return fmt.Errorf("error getting user id with nam: %v", err)
+	}
+
+	for _, follow := range(following) {
+		fmt.Printf("%v is following %v\n", follow.Name_2, follow.Name)
+	}
+	return nil
+}
+

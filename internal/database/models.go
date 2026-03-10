@@ -16,7 +16,7 @@ type Feed struct {
 	UpdatedAt time.Time
 	Name      string
 	Url       string
-	UserID    string
+	UserID    uuid.UUID
 }
 
 type FeedFollow struct {
