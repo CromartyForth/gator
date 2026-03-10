@@ -1,0 +1,245 @@
+package command
+
+import (
+	"os"
+	"fmt"
+	"github.com/google/uuid"
+	"context"
+	"time"
+	"github.com/CromartyForth/gator/internal/database"
+)
+
+func HandlerLogin(s *State, cmd Command) error {
+	// ensure username in args
+	if len(cmd.Arguments) < 1 {
+		return fmt.Errorf("username is required")
+	}
+
+	// ensure username is in database
+	contextBackground := context.Background()
+	user, err := s.Db.GetUser(contextBackground, cmd.Arguments[0])
+	if err != nil {
+		fmt.Printf("User %v does not exist.", cmd.Arguments[0])
+		os.Exit(1)
+	}
+
+	s.Stateptr.SetUser(user.Name)
+	fmt.Printf("Username set to %v\n", s.Stateptr.UserName)
+	return nil
+}
+
+
+func HandlerRegister(s *State, cmd Command) error {
+	// ensure username in args
+	if len(cmd.Arguments) < 1 {
+		return fmt.Errorf("username is required")
+	}
+
+	// Create a new user in the database. It should have access to the CreateUser query through the state -> db struct.
+	contextBackground := context.Background()
+	userArgs := database.CreateUserParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name: cmd.Arguments[0],
+	}
+	// Create a new user in the database. It should have access to the CreateUser query through the state -> db struct.
+	newUser, err := s.Db.CreateUser(contextBackground, userArgs)
+	if err != nil {
+		fmt.Printf("User with that name already exists: %v", err)
+		os.Exit(1)
+	}
+	
+	// Set the current user in the config to the given name.
+	s.Stateptr.SetUser(cmd.Arguments[0])
+
+	// Print a message that the user was created
+	fmt.Printf("Username set to %v\n", newUser.Name)
+	//fmt.Printf("%+v", newUser)
+	return nil
+}
+
+
+func HandlerReset(s *State, cmd Command) error {
+	contextBackground := context.Background()
+	if err := s.Db.DeleteAllUsers(contextBackground); err != nil {
+		return fmt.Errorf("error deleting user table: %v", err)
+	}
+	return nil
+}
+
+
+func HandlerUsers(s *State, cmd Command) error {
+	contextBackground := context.Background()
+
+	// get all the users
+	users, err := s.Db.GetUsers(contextBackground)
+	if err != nil {
+		return fmt.Errorf("error getting all users: %v", err)
+	}
+
+	// Whois the current user.
+	currentUser := s.Stateptr.UserName
+	
+	// print out users
+	for _, user := range users {
+		if user == currentUser {
+			fmt.Printf("%v (current)\n", user)
+		} else {
+			fmt.Println(user)
+		}
+	}
+	return nil
+}
+
+
+func HandlerAgg(s *State, cmd Command) error {
+	// Add an agg command. Later this will be our long-running aggregator service. For now, we'll just use it to fetch a single feed and ensure our parsing works. It should fetch the feed found at https://www.wagslane.dev/index.xml and print the entire struct to the console.
+	contextBackground := context.Background()
+	fetchedFeed, err := fetchFeed(contextBackground, "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Title: %+v ***\n", fetchedFeed.Channel.Title)
+	fmt.Printf("Description: %+v ***\n", fetchedFeed.Channel.Description)
+	fmt.Printf("%+v\n", fetchedFeed)
+
+	return nil
+}
+
+
+func HandlerAddFeed(s *State, cmd Command, user database.User) error {
+	// ensure two arguments
+	if len(cmd.Arguments) < 2 {
+		return fmt.Errorf("not enought aguments, name and url required")
+	}
+
+	userIDstring := user.ID.String()
+	if userIDstring == "" {
+		return fmt.Errorf("error converting *** %v *** to string", user.ID)
+	}
+
+	// create feed entry
+	feedArgs := database.CreateFeedParams{
+		
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name: cmd.Arguments[0],
+		Url: cmd.Arguments[1],
+		UserID: user.ID, // get current user
+	}
+
+	// check url is valid?
+
+	contextBackground := context.Background()
+	newFeed, err := s.Db.CreateFeed(contextBackground, feedArgs)
+	if err != nil {
+		return fmt.Errorf("Error writing to database: %v", err)
+	}
+
+	fmt.Printf("%+v", newFeed)
+
+	// create an automatic feed_following entry
+	feedFollowArgs := database.CreateFeedFollowParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: newFeed.UserID,
+		FeedID: newFeed.ID,  
+	}
+
+	// create new feed_follow entry
+	_, err = s.Db.CreateFeedFollow(contextBackground, feedFollowArgs)
+	if err != nil {
+		return fmt.Errorf("error creating feed_follow entry: %v", err)
+	}
+
+	return nil
+}
+
+
+func HandlerFeeds(s *State, cmd Command) error {
+	
+	contextBackground := context.Background()
+	feeds, err := s.Db.GetFeeds(contextBackground)
+	if err != nil {
+		return fmt.Errorf("error returning feeds from database: %v", err)
+	}
+
+	for _, feed := range(feeds) {
+		fmt.Printf("\nTitle: %v\n", feed.Name)
+		fmt.Printf("url: %v\n", feed.Url)
+		fmt.Printf("Added by: %v\n", feed.Name_2)
+	}
+
+	return nil
+}
+
+
+func HandlerFollow(s *State, cmd Command, user database.User) error {
+	// ensure one arguments
+	if len(cmd.Arguments) < 1 {
+		return fmt.Errorf("not enought aguments, url required")
+	}
+
+	// user feed url to get feed id from feeds table.
+	contextBackground := context.Background()
+	getfeedID, err := s.Db.GetFeedFromURL(contextBackground, cmd.Arguments[0])
+	if err != nil {
+		return fmt.Errorf("error fetching feed id from url: %v", err)
+	}
+
+	// create feed_follows entry
+	feedFollowArgs := database.CreateFeedFollowParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: user.ID,
+		FeedID: getfeedID.ID,  
+	}
+
+	// create new feed_follow entry
+
+	feeds, err := s.Db.CreateFeedFollow(contextBackground, feedFollowArgs)
+	if err != nil {
+		return fmt.Errorf("error creating feed_follow entry: %v", err)
+	}
+
+	fmt.Printf("Feed name: %v\n", feeds.FeedName)
+	fmt.Printf("Followed by: %v\n", feeds.UserName)
+
+	return nil
+}
+
+
+func HandlerFollowing(s *State, cmd Command, user database.User) error {
+	
+	// get the all the feeds the user is following
+	contextBackground := context.Background()
+	following, err := s.Db.GetFeedFollowsForUser(contextBackground, user.ID)
+	if err != nil {
+		return fmt.Errorf("error getting user id with nam: %v", err)
+	}
+
+	for _, follow := range(following) {
+		fmt.Printf("%v is following %v\n", follow.Name_2, follow.Name)
+	}
+	return nil
+}
+
+
+func HandlerUnfollow(s *State, cmd Command, user database.User) error {
+	
+	deleteMe := database.DeleteFeedFollowParams {
+		UserID: user.ID,
+		Url: cmd.Arguments[0],
+	}
+
+	contextBackground := context.Background()
+	s.Db.DeleteFeedFollow(contextBackground, deleteMe)
+
+	return nil
+}
+
